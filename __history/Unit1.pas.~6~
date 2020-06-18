@@ -1,0 +1,106 @@
+unit Unit1;
+
+interface
+
+uses
+  Winapi.Windows, Winapi.Messages, System.SysUtils, System.Variants, System.Classes, Vcl.Graphics,
+  Vcl.Controls, Vcl.Forms, Vcl.Dialogs, System.Win.ScktComp, Vcl.StdCtrls,
+  Vcl.ExtCtrls, inifiles;
+
+type
+  TForm1 = class(TForm)
+    Server: TServerSocket;
+    Label1: TLabel;
+    Timer1: TTimer;
+    ListBox1: TListBox;
+    procedure FormCreate(Sender: TObject);
+    procedure ServerClientRead(Sender: TObject; Socket: TCustomWinSocket);
+    procedure Timer1Timer(Sender: TObject);
+    procedure NewMsg(s:string);
+  private
+    { Private declarations }
+  public
+    { Public declarations }
+  end;
+
+var
+  Form1: TForm1;
+  ini:tinifile;
+implementation
+
+{$R *.dfm}
+
+procedure TForm1.FormCreate(Sender: TObject);
+begin
+server.Active:=true;
+if DirectoryExists(ExtractFilePath(Application.ExeName)+'Accounts\') then
+else
+begin
+  createdir(ExtractFilePath(Application.ExeName)+'Accounts');
+end;
+
+end;
+
+procedure TForm1.NewMsg(s: string);
+begin
+
+
+if copy(s,1,2)='#L' then
+begin
+Delete(s,1,2);
+if fileexists(ExtractFilePath(Application.ExeName)+'Accounts\'+Copy(s,1,Pos('?',s)-1)+'.ini') then
+begin
+ini:=TIniFile.Create(ExtractFilePath(Application.ExeName)+'Accounts\'+Copy(s,1,Pos('?',s)-1)+'.ini');
+Delete(s,1,Pos('?',s));
+if s=ini.ReadString('General','Password','') then
+begin
+server.Socket.connections[server.Socket.ActiveConnections-1].SendText('#OK'+InttoStr(server.Socket.ActiveConnections-1)+ '|')
+end
+else
+begin
+server.Socket.connections[server.Socket.ActiveConnections-1].SendText('#F|');
+end;
+end
+else
+begin
+server.Socket.connections[server.Socket.ActiveConnections-1].SendText('#F|');
+end;
+end;
+
+
+if copy(s,1,2)='#R' then
+begin
+Delete(s,1,2);
+if fileexists(ExtractFilePath(Application.ExeName)+'Accounts\'+Copy(s,1,Pos('?',s)-1)+'.ini') then
+begin
+server.Socket.connections[server.Socket.ActiveConnections-1].SendText('#Z|');
+exit;
+end;
+ini:=TIniFile.Create(ExtractFilePath(Application.ExeName)+'Accounts\'+Copy(s,1,Pos('?',s)-1)+'.ini');
+ini.WriteString('General','Nick',Copy(s,1,Pos('?',s)-1));
+Delete(s,1,Pos('?',s));
+ini.WriteString('General','Password',s);
+server.Socket.connections[server.Socket.ActiveConnections-1].SendText('#O|')
+end;
+
+end;
+
+procedure TForm1.ServerClientRead(Sender: TObject; Socket: TCustomWinSocket);
+var
+text:string;
+begin
+text:=socket.ReceiveText;
+     while Pos('|',text) > 0 do
+     begin
+      newmsg(Copy(text,1,Pos('|',text)-1));
+      Delete(text,1,Pos('|',text));
+     end;
+     Exit;
+end;
+
+procedure TForm1.Timer1Timer(Sender: TObject);
+begin
+label1.Caption:=IntTOstr(server.Socket.ActiveConnections);
+end;
+
+end.

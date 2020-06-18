@@ -1,0 +1,45 @@
+object Form1: TForm1
+  Left = 0
+  Top = 0
+  Caption = 'Form1'
+  ClientHeight = 215
+  ClientWidth = 574
+  Color = clBtnFace
+  Font.Charset = DEFAULT_CHARSET
+  Font.Color = clWindowText
+  Font.Height = -11
+  Font.Name = 'Tahoma'
+  Font.Style = []
+  OldCreateOrder = False
+  OnCreate = FormCreate
+  PixelsPerInch = 96
+  TextHeight = 13
+  object Label1: TLabel
+    Left = 72
+    Top = 24
+    Width = 31
+    Height = 13
+    Caption = 'Label1'
+  end
+  object ListBox1: TListBox
+    Left = 445
+    Top = 8
+    Width = 121
+    Height = 199
+    ItemHeight = 13
+    TabOrder = 0
+  end
+  object Server: TServerSocket
+    Active = False
+    Port = 2048
+    ServerType = stNonBlocking
+    OnClientRead = ServerClientRead
+    Left = 8
+    Top = 8
+  end
+  object Timer1: TTimer
+    OnTimer = Timer1Timer
+    Left = 264
+    Top = 104
+  end
+end

@@ -1,0 +1,207 @@
+unit Unit1;
+
+interface
+
+uses
+  Winapi.Windows, Winapi.Messages, System.SysUtils, System.Variants, System.Classes, Vcl.Graphics,
+  Vcl.Controls, Vcl.Forms, Vcl.Dialogs, System.Win.ScktComp, Vcl.StdCtrls,
+  Vcl.ExtCtrls, inifiles;
+
+type
+  TForm1 = class(TForm)
+    Server: TServerSocket;
+    Label1: TLabel;
+    Timer1: TTimer;
+    ListBox1: TListBox;
+    Memo1: TMemo;
+    procedure FormCreate(Sender: TObject);
+    procedure ServerClientRead(Sender: TObject; Socket: TCustomWinSocket);
+    procedure Timer1Timer(Sender: TObject);
+    procedure NewMsg(s:string);
+    procedure ServerClientDisconnect(Sender: TObject; Socket: TCustomWinSocket);
+    procedure ServerClientError(Sender: TObject; Socket: TCustomWinSocket;
+      ErrorEvent: TErrorEvent; var ErrorCode: Integer);
+  private
+    { Private declarations }
+  public
+    { Public declarations }
+  end;
+
+var
+  Form1: TForm1;
+  ini:tinifile;
+  kol:integer;
+  te:string;
+implementation
+
+{$R *.dfm}
+
+procedure TForm1.FormCreate(Sender: TObject);
+begin
+server.Active:=true;
+if DirectoryExists(ExtractFilePath(Application.ExeName)+'Accounts\') then
+else
+begin
+  createdir(ExtractFilePath(Application.ExeName)+'Accounts');
+end;
+
+end;
+
+procedure TForm1.NewMsg(s: string);
+var
+o,v,n,l:string;
+i,a:integer;
+begin
+if (copy(s,1,2)='#M') or (copy(s,1,3)='#MA') then
+begin
+  for i := 0 to server.Socket.ActiveConnections-1 do
+    begin
+      server.Socket.Connections[i].SendText(s+'|');
+    end;
+end;
+
+
+
+
+if copy(s,1,3)='#CH' then
+begin
+for a := 0 to server.Socket.ActiveConnections-1 do
+        begin
+          server.Socket.Connections[a].SendText(s+'|');
+        end;
+Delete(s,1,3);
+n:=copy(s,1,1);
+Delete(s,1,1);
+for I := 0 to listbox1.Items.Count-1 do
+  begin
+    l:=listbox1.Items.Strings[i];
+    delete(l,1,1);
+    if l=s then
+    begin
+      listbox1.Items.Strings[i]:=n+s;
+
+    end;
+  end;
+end;
+
+
+
+if copy(s,1,2)='#H' then
+begin
+Delete(s,1,2);
+kol:=kol+1;
+te:=te+s+';';
+if kol=server.Socket.ActiveConnections then
+begin
+kol:=0;
+listbox1.Clear;
+  for i := 0 to Server.Socket.ActiveConnections-1 do
+  begin
+      Server.Socket.Connections[i].SendText(te+'|');
+  end;
+  Delete(te,1,2);
+  while Pos(';',te) > 0 do begin
+      ListBox1.Items.Add(Copy(te,1,Pos(';',te)-1));
+      Delete(te,1,Pos(';',te));
+     end;
+end;
+
+
+end;
+
+if copy(s,1,2)='#L' then
+begin
+Delete(s,1,2);
+if fileexists(ExtractFilePath(Application.ExeName)+'Accounts\'+Copy(s,1,Pos('?',s)-1)+'.ini') then
+begin
+ini:=TIniFile.Create(ExtractFilePath(Application.ExeName)+'Accounts\'+Copy(s,1,Pos('?',s)-1)+'.ini');
+o:=Copy(s,1,Pos('?',s)-1);
+Delete(s,1,Pos('?',s));
+if s=ini.ReadString('General','Password','') then
+begin
+listbox1.Items.Add('6'+o);
+for i := 0 to ListBox1.Items.Count-1 do
+begin
+v :=v+ ListBox1.Items[i]+';';
+end;
+server.Socket.connections[server.Socket.ActiveConnections-1].SendText('#OK'+InttoStr(server.Socket.ActiveConnections-1)+'|');
+for i := 0 to server.Socket.ActiveConnections-1 do
+  begin
+    server.Socket.Connections[i].SendText('#U'+v+'|');
+  end;
+end
+else
+begin
+server.Socket.connections[server.Socket.ActiveConnections-1].SendText('#F|');
+end;
+end
+else
+begin
+server.Socket.connections[server.Socket.ActiveConnections-1].SendText('#F|');
+end;
+end;
+
+
+if copy(s,1,2)='#R' then
+begin
+Delete(s,1,2);
+if fileexists(ExtractFilePath(Application.ExeName)+'Accounts\'+Copy(s,1,Pos('?',s)-1)+'.ini') then
+begin
+server.Socket.connections[server.Socket.ActiveConnections-1].SendText('#Z|');
+exit;
+end;
+ini:=TIniFile.Create(ExtractFilePath(Application.ExeName)+'Accounts\'+Copy(s,1,Pos('?',s)-1)+'.ini');
+ini.WriteString('General','Nick',Copy(s,1,Pos('?',s)-1));
+Delete(s,1,Pos('?',s));
+ini.WriteString('General','Password',s);
+server.Socket.connections[server.Socket.ActiveConnections-1].SendText('#O|')
+end;
+
+end;
+
+procedure TForm1.ServerClientDisconnect(Sender: TObject;
+  Socket: TCustomWinSocket);
+  var
+  i:integer;
+  begin
+  if server.Socket.ActiveConnections=0 then
+  begin
+  listbox1.Clear;
+    exit;
+  end;
+  kol:=0;
+  te:='#U';
+ for i := 0 to Server.Socket.ActiveConnections-1 do
+      Server.Socket.Connections[i].SendText('#H|');
+end;
+
+procedure TForm1.ServerClientError(Sender: TObject; Socket: TCustomWinSocket;
+  ErrorEvent: TErrorEvent; var ErrorCode: Integer);
+begin
+memo1.Lines.Add('Îøèáêà '+IntToStr(errorcode));
+errorcode:=0;
+end;
+
+procedure TForm1.ServerClientRead(Sender: TObject; Socket: TCustomWinSocket);
+var
+text:string;
+begin
+text:=socket.ReceiveText;
+     while Pos('|',text) > 0 do
+     begin
+      newmsg(Copy(text,1,Pos('|',text)-1));
+      Delete(text,1,Pos('|',text));
+     end;
+     Exit;
+end;
+
+procedure TForm1.Timer1Timer(Sender: TObject);
+begin
+ if server.Socket.ActiveConnections=0 then
+  begin
+  listbox1.Clear;
+  end;
+label1.Caption:=IntTOstr(server.Socket.ActiveConnections);
+end;
+
+end.
